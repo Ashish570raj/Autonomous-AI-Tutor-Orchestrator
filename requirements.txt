@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic
+httpx
+langchain
+openai
+python-dotenv
+pytest
+psycopg2-binary   # optional, for Postgres
+SQLAlchemy        # optional, for Postgres persistence
+pydantic-settings

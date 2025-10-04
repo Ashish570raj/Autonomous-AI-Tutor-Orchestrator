@@ -1,0 +1,67 @@
+from .parameter_extractor import extract_params
+from .tool_registry import get_tool
+from .state_manager import push_message, get_conversation
+from .schemas import OrchestratorRequest
+from pydantic import ValidationError
+
+class OrchestrationError(Exception):
+    pass
+
+def orchestrate(req: OrchestratorRequest):
+    # store incoming message
+    push_message(req.user_info.user_id, "user", req.message)
+
+    # extract params + tool suggestion
+    extracted = extract_params(req.message, req.chat_history)
+    selected_tool = req.target_tool or extracted.get("tool")
+    if not selected_tool:
+        raise OrchestrationError("No tool selected or inferred.")
+
+    reg = get_tool(selected_tool)
+    if not reg:
+        raise OrchestrationError(f"Tool {selected_tool} not registered.")
+
+    schema = reg["schema"]
+    adapter = reg["adapter"]
+
+    # Build payload dict according to a mapping strategy:
+    # We must fill required fields for the tool schema using: user_info, chat_history, extracted values, defaults
+    payload = {}
+    # common fields
+    payload["user_info"] = req.user_info.dict()
+    payload["chat_history"] = [m.dict() for m in req.chat_history]
+
+    # Fill tool-specific
+    if selected_tool == "note_maker":
+        payload["topic"] = extracted.get("topic") or "General"
+        payload["subject"] = extracted.get("subject") or "General"
+        payload["note_taking_style"] = extracted.get("note_taking_style") or "structured"
+        payload["include_examples"] = extracted.get("include_examples", True)
+        payload["include_analogies"] = extracted.get("include_analogies", False)
+    elif selected_tool == "flashcard_generator":
+        payload["topic"] = extracted.get("topic") or "General"
+        payload["count"] = extracted.get("num_questions") or 5
+        payload["difficulty"] = extracted.get("difficulty") or "medium"
+        payload["include_examples"] = extracted.get("include_examples", True)
+        payload["subject"] = extracted.get("subject") or "General"
+    elif selected_tool == "concept_explainer":
+        payload["concept_to_explain"] = extracted.get("topic") or "General"
+        payload["current_topic"] = extracted.get("subject") or "General"
+        payload["desired_depth"] = extracted.get("desired_depth") or "basic"
+
+    # Validate payload against schema
+    try:
+        validated = schema(**payload)
+    except ValidationError as e:
+        raise OrchestrationError(f"Validation error: {e}")
+
+    # Call adapter
+    try:
+        result = adapter(validated)
+    except Exception as e:
+        raise OrchestrationError(f"Tool call failed: {e}")
+
+    # push assistant message (summary)
+    push_message(req.user_info.user_id, "assistant", f"Tool {selected_tool} executed")
+
+    return {"tool": selected_tool, "request": payload, "result": result}

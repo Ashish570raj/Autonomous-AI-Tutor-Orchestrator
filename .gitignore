@@ -1,0 +1,68 @@
+# --- Python & FastAPI ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+*.pot
+*.pyc
+
+# --- Virtual Environment ---
+venv/
+env/
+.orchenv/
+orchenv/
+.venv/
+ENV/
+
+# --- Environment Variables ---
+.env
+.env.*
+*.env
+
+# --- IDEs & Editors ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- OS / System Files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Build / Packaging ---
+build/
+dist/
+*.egg-info/
+*.egg
+
+# --- Docker ---
+*.pid
+*.tar
+*.bak
+*.swp
+
+# --- Testing / Coverage ---
+htmlcov/
+.coverage
+.tox/
+.nox/
+pytest_cache/
+.cache/
+
+# --- Jupyter / notebooks (if any) ---
+.ipynb_checkpoints/
+
+# --- Logs & temp ---
+*.log
+logs/
+tmp/
+temp/
+
+# --- MyPy / Pyright ---
+.mypy_cache/
+.pyright/
+.pyre/

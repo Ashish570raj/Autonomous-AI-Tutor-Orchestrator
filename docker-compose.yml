@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - EXTRACTOR_MODE=rule
+      # - OPENAI_API_KEY=...
+    depends_on: []
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: autotutor
+    ports:
+      - "5432:5432"
