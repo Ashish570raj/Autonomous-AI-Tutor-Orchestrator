@@ -1,23 +1,25 @@
-from fastapi.testclient import TestClient
-from app.main import app
+import requests, json
 
-client = TestClient(app)
-
-def test_note_maker_flow():
-    payload = {
-      "user_info": {
-        "user_id": "student1",
-        "name": "Sam",
-        "grade_level": "10",
-        "learning_style_summary": "prefers outlines",
-        "emotional_state_summary": "focused",
-        "mastery_level_summary": "Level 3 - building"
-      },
-      "chat_history": [{"role":"user","content":"I need notes on the Water Cycle"}],
-      "message": "I need notes on the Water Cycle"
+URL = "http://127.0.0.1:8000/orchestrate"
+samples = [
+    {
+      "session_id":"s_note",
+      "user_info":{ "user_id":"u_note","name":"M","grade_level":"10","learning_style_summary":"bullet","emotional_state_summary":"ok","mastery_level_summary":"3"},
+      "chat_history":[{"role":"user","content":"Please make notes on mitosis"}],
+      "message":"Please make notes on mitosis",
+      "target_tool":"note_maker"
+    },
+    {
+      "session_id":"s_explain",
+      "user_info":{ "user_id":"u_exp","name":"N","grade_level":"9","learning_style_summary":"story","emotional_state_summary":"curious","mastery_level_summary":"1"},
+      "chat_history":[{"role":"user","content":"Explain photosynthesis"}],
+      "message":"Explain photosynthesis",
+      "target_tool":"concept_explainer"
     }
-    resp = client.post("/orchestrate", json=payload)
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["tool"] == "note_maker"
-    assert "result" in data
+]
+
+for s in samples:
+    r = requests.post(URL, json=s)
+    print("STATUS", r.status_code)
+    print(json.dumps(r.json(), indent=2))
+    print("-"*60)

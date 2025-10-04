@@ -2,10 +2,26 @@ from .parameter_extractor import extract_params
 from .tool_registry import get_tool
 from .state_manager import push_message, get_conversation
 from .schemas import OrchestratorRequest
-from pydantic import ValidationError
+from pydantic import ValidationError,BaseModel,Field
+from typing import List, Optional, Literal, Any
+from .schemas import UserInfo, ChatMessage
 
 class OrchestrationError(Exception):
+    """Raised when orchestration fails"""
     pass
+
+# --- Orchestrator request wrapper (extended version) ---
+class OrchestratorRequest(BaseModel):
+    session_id: Optional[str] = None
+    user_info: UserInfo
+    chat_history: List[ChatMessage]
+    message: str
+    target_tool: Optional[str] = None
+    teaching_style: Optional[str] = "direct"
+    emotional_state: Optional[str] = None
+    mastery_level: Optional[int] = None
+    preferred_tools: Optional[List[str]] = []
+
 
 def orchestrate(req: OrchestratorRequest):
     # store incoming message

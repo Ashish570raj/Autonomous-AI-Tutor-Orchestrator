@@ -42,7 +42,12 @@ class ConceptExplainerInput(BaseModel):
 
 # Orchestrator request wrapper
 class OrchestratorRequest(BaseModel):
+    session_id: Optional[str] = None
     user_info: UserInfo
     chat_history: List[ChatMessage]
-    message: str   # the latest user message
-    target_tool: Optional[str] = None  # optional override
+    message: str
+    target_tool: Optional[str] = None
+    teaching_style: Optional[str] = "direct"
+    emotional_state: Optional[str] = None
+    mastery_level: Optional[int] = None
+    preferred_tools: Optional[List[str]] = []

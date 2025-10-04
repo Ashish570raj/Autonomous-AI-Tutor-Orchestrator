@@ -1,11 +1,12 @@
-import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    EXTRACTOR_MODE: str = os.getenv("EXTRACTOR_MODE", "rule")  # "rule" or "llm"
-    OPENAI_API_KEY: str | None = os.getenv("OPENAI_API_KEY")
-    LLM_MODEL: str = os.getenv("LLM_MODEL", "gpt-4o-mini")  # adapt as needed
-    # Postgres optional
-    DATABASE_URL: str | None = os.getenv("DATABASE_URL")
+    EXTRACTOR_MODE: str = "rule"   # default is "rule", can be overridden by env
+    GEMINI_API_KEY: str            # required
+    LLM_MODEL: str = "gemini-2.5-flash"  # or "gemini-1.5-flash", etc.
+    DATABASE_URL: str | None = None  # optional
+
+    class Config:
+        env_file = ".env"
 
 settings = Settings()
