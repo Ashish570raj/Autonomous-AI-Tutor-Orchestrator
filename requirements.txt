@@ -9,3 +9,4 @@ pytest
 psycopg2-binary   # optional, for Postgres
 SQLAlchemy        # optional, for Postgres persistence
 pydantic-settings
+streamlit

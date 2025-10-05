@@ -27,8 +27,11 @@ def orchestrate(req: OrchestratorRequest):
     # store incoming message
     push_message(req.user_info.user_id, "user", req.message)
 
-    # extract params + tool suggestion
-    extracted = extract_params(req.message, req.chat_history)
+    # get full conversation history for this user
+    full_history = get_conversation(req.user_info.user_id)
+
+    # extract params + tool suggestion (using full history)
+    extracted = extract_params(req.message, full_history)
     selected_tool = req.target_tool or extracted.get("tool")
     if not selected_tool:
         raise OrchestrationError("No tool selected or inferred.")
@@ -40,12 +43,10 @@ def orchestrate(req: OrchestratorRequest):
     schema = reg["schema"]
     adapter = reg["adapter"]
 
-    # Build payload dict according to a mapping strategy:
-    # We must fill required fields for the tool schema using: user_info, chat_history, extracted values, defaults
+    # Build payload dict
     payload = {}
-    # common fields
     payload["user_info"] = req.user_info.dict()
-    payload["chat_history"] = [m.dict() for m in req.chat_history]
+    payload["chat_history"] = full_history
 
     # Fill tool-specific
     if selected_tool == "note_maker":
@@ -65,7 +66,7 @@ def orchestrate(req: OrchestratorRequest):
         payload["current_topic"] = extracted.get("subject") or "General"
         payload["desired_depth"] = extracted.get("desired_depth") or "basic"
 
-    # Validate payload against schema
+    # Validate payload
     try:
         validated = schema(**payload)
     except ValidationError as e:
@@ -81,3 +82,4 @@ def orchestrate(req: OrchestratorRequest):
     push_message(req.user_info.user_id, "assistant", f"Tool {selected_tool} executed")
 
     return {"tool": selected_tool, "request": payload, "result": result}
+ 

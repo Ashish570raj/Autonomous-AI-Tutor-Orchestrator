@@ -1,21 +1,18 @@
-from typing import Dict, Any
-import time
+# Simple in-memory state manager (can later replace with Redis/MySQL)
 
-_SESSIONS: Dict[str, Dict[str, Any]] = {}
-
-def create_or_get_session(user_id: str) -> Dict[str, Any]:
-    s = _SESSIONS.get(user_id)
-    if not s:
-        s = {"user_id": user_id, "created_at": time.time(), "conversation": [], "meta": {}}
-        _SESSIONS[user_id] = s
-    return s
+_conversations = {}  # {user_id: [messages]}
 
 def push_message(user_id: str, role: str, content: str):
-    s = create_or_get_session(user_id)
-    s["conversation"].append({"role": role, "content": content, "ts": time.time()})
+    """Store a message in conversation history"""
+    if user_id not in _conversations:
+        _conversations[user_id] = []
+    _conversations[user_id].append({"role": role, "content": content})
 
 def get_conversation(user_id: str):
-    s = create_or_get_session(user_id)
-    return s["conversation"]
+    """Retrieve conversation history"""
+    return _conversations.get(user_id, [])
 
-# Optional: functions to persist/retrieve from Postgres using SQLAlchemy/SQLModel (left as to-do)
+def clear_conversation(user_id: str):
+    """Reset history for a user/session"""
+    if user_id in _conversations:
+        del _conversations[user_id]
