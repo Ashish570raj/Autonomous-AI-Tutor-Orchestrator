@@ -1,14 +1,56 @@
-# mock_flashcard.py
-from typing import Dict, Any
-from ..schemas import FlashcardInput
+import json
+from langchain_google_genai import ChatGoogleGenerativeAI
+from app.config import settings
 
-def generate_flashcards(payload: FlashcardInput) -> Dict[str, Any]:
-    cards = []
-    for i in range(payload.count):
-        cards.append({
-            "title": payload.topic,
-            "question": f"Q{i+1}: What about {payload.topic}?",
-            "answer": f"A{i+1}: Short answer for {payload.topic}.",
-            "example": "Example" if payload.include_examples else None
-        })
-    return {"flashcards": cards, "topic": payload.topic, "difficulty": payload.difficulty}
+def flashcard_adapter(input):
+    llm = ChatGoogleGenerativeAI(
+        model=settings.LLM_MODEL,
+        google_api_key=settings.GEMINI_API_KEY,
+        temperature=0.5
+    )
+
+    prompt = f"""
+    You are a flashcard generator for students.
+
+    Create exactly {input.count} flashcards on the topic "{input.topic}" 
+    (subject: {input.subject}, difficulty: {input.difficulty}).
+
+    Each flashcard must include:
+    - title (same as topic)
+    - question (short, clear)
+    - answer (concise, accurate)
+    - example (if {input.include_examples})
+
+    Return STRICT JSON ONLY in this format:
+    {{
+      "flashcards": [
+        {{
+          "title": "{input.topic}",
+          "question": "...",
+          "answer": "...",
+          "example": "..."
+        }}
+      ],
+      "topic": "{input.topic}",
+      "difficulty": "{input.difficulty}"
+    }}
+    """
+
+    try:
+        response = llm.invoke(prompt)
+        text = response.content.strip()
+        return json.loads(text)
+    except Exception as e:
+        print("[Flashcard parse error]", e)
+        return {
+            "flashcards": [
+                {
+                    "title": input.topic,
+                    "question": "Parsing failed",
+                    "answer": "",
+                    "example": ""
+                }
+            ],
+            "topic": input.topic,
+            "difficulty": input.difficulty
+        }

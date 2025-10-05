@@ -1,11 +1,44 @@
-# mock_concept_explainer.py
-from typing import Dict, Any
-from ..schemas import ConceptExplainerInput
+import json
+from langchain_google_genai import ChatGoogleGenerativeAI
+from app.config import settings
 
-def explain_concept(payload: ConceptExplainerInput) -> Dict[str, Any]:
-    return {
-        "explanation": f"{payload.concept_to_explain} explained at {payload.desired_depth} depth.",
-        "examples": [f"Example illustrating {payload.concept_to_explain}"],
-        "related_concepts": ["related1","related2"],
-        "practice_questions": ["Practice Q1", "Practice Q2"]
-    }
+def concept_explainer_adapter(input):
+    llm = ChatGoogleGenerativeAI(
+        model=settings.LLM_MODEL,
+        google_api_key=settings.GEMINI_API_KEY,
+        temperature=0.5
+    )
+
+    prompt = f"""
+    You are a concept explainer for students.
+
+    Explain the concept "{input.concept_to_explain}" (topic: {input.current_topic}) 
+    at "{input.desired_depth}" depth.
+
+    Include:
+    - explanation
+    - examples
+    - related_concepts
+    - practice_questions
+
+    Return STRICT JSON ONLY in this format:
+    {{
+      "explanation": "...",
+      "examples": ["...", "..."],
+      "related_concepts": ["...", "..."],
+      "practice_questions": ["...", "..."]
+    }}
+    """
+
+    try:
+        response = llm.invoke(prompt)
+        text = response.content.strip()
+        return json.loads(text)
+    except Exception as e:
+        print("[Concept explainer parse error]", e)
+        return {
+            "explanation": f"Fallback explanation for {input.concept_to_explain}",
+            "examples": [],
+            "related_concepts": [],
+            "practice_questions": []
+        }

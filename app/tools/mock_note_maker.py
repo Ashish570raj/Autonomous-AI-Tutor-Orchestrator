@@ -1,19 +1,58 @@
-from typing import Dict, Any
-from ..schemas import NoteMakerInput
+import json
+from langchain_google_genai import ChatGoogleGenerativeAI
+from app.config import settings
 
-def generate_notes(payload: NoteMakerInput) -> Dict[str, Any]:
-    # Validate already happened; here we produce a mock response
-    topic = payload.topic
-    title = f"{topic} — Quick Notes"
-    summary = f"Concise notes on {topic} for {payload.user_info.name}."
-    note_sections = [
-        {"title": "Overview", "content": f"Overview of {topic}", "key_points": ["kp1","kp2"], "examples": [], "analogies": []}
-    ]
-    return {
-        "topic": topic,
-        "title": title,
-        "summary": summary,
-        "note_sections": note_sections,
-        "key_concepts": ["concept1","concept2"],
-        "note_taking_style": payload.note_taking_style
-    }
+def note_maker_adapter(input):
+    llm = ChatGoogleGenerativeAI(
+        model=settings.LLM_MODEL,
+        google_api_key=settings.GEMINI_API_KEY,
+        temperature=0.5
+    )
+
+    prompt = f"""
+    You are a study note maker.
+
+    Create structured notes for the topic "{input.topic}" 
+    (subject: {input.subject}, style: {input.note_taking_style}).
+
+    Include:
+    - summary
+    - key concepts
+    - note_sections with title, content, key_points
+    - examples if requested
+    - analogies if requested
+
+    Return STRICT JSON ONLY in this format:
+    {{
+      "topic": "{input.topic}",
+      "title": "...",
+      "summary": "...",
+      "note_sections": [
+        {{
+          "title": "...",
+          "content": "...",
+          "key_points": ["...", "..."],
+          "examples": ["..."],
+          "analogies": ["..."]
+        }}
+      ],
+      "key_concepts": ["...", "..."],
+      "note_taking_style": "{input.note_taking_style}"
+    }}
+    """
+
+    try:
+        response = llm.invoke(prompt)
+        text = response.content.strip()
+        return json.loads(text)
+    except Exception as e:
+        print("[Note maker parse error]", e)
+        # fallback safe output
+        return {
+            "topic": input.topic,
+            "title": f"{input.topic} — Notes",
+            "summary": f"Could not generate full notes, but here’s a summary placeholder.",
+            "note_sections": [],
+            "key_concepts": [],
+            "note_taking_style": input.note_taking_style
+        }
